@@ -63,7 +63,7 @@ def get_or_create_category(site_url: str, auth_header: str, category_name: str) 
 
     # 새 카테고리 생성
     create_url = f"{site_url}/wp-json/wp/v2/categories"
-    data = json.dumps({"name": category_name}).encode()
+    data = json.dumps({"name": category_name}, ensure_ascii=False).encode("utf-8")
     req = Request(
         create_url,
         data=data,
@@ -100,7 +100,7 @@ def get_or_create_tag(site_url: str, auth_header: str, tag_name: str) -> int:
 
     # 새 태그 생성
     create_url = f"{site_url}/wp-json/wp/v2/tags"
-    data = json.dumps({"name": tag_name}).encode()
+    data = json.dumps({"name": tag_name}, ensure_ascii=False).encode("utf-8")
     req = Request(
         create_url,
         data=data,
@@ -164,7 +164,7 @@ def publish_post(
 
     # API 요청
     api_url = f"{site_url}/wp-json/wp/v2/posts"
-    data = json.dumps(post_data).encode()
+    data = json.dumps(post_data, ensure_ascii=False).encode("utf-8")
 
     req = Request(
         api_url,
