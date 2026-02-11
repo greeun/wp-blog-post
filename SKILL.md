@@ -361,6 +361,13 @@ python .claude/skills/wp-blog-post/scripts/publish_post.py \
 7. **Execute publishing script**: Save as draft with auto-selected categories and tags
 8. **Confirm result**: Provide returned post URL
 
+## Writing Style Rules
+
+- **Korean verb endings must have a period**: When a sentence ends with a verb form (~다, ~하다), it must end with "~다." (with period).
+  - Correct: "FastAPI를 사용하여 REST API를 구현했다."
+  - Wrong: "FastAPI를 사용하여 REST API를 구현했다"
+- Applies to all verb-ending forms: ~했다, ~된다, ~있다, ~없다, ~한다, ~이다, ~했다, etc.
+
 ## Code Block Handling
 
 For code highlighting in WordPress:
