@@ -151,21 +151,43 @@ Include appropriate visual elements to **enhance readability and comprehension**
 4. **Processes must be expressed as flowcharts**
 5. **Use summary boxes for TL;DR sections**
 
-### Mermaid Diagrams (Recommended)
+### Mermaid Diagrams → PNG Image (Required Workflow)
 
-Auto-renders with Mermaid plugin in WordPress.
+**Do NOT use `<!-- wp:html --><pre class="mermaid">` inline.** WordPress does not render Mermaid without a plugin.
 
-```html
-<!-- wp:html -->
-<pre class="mermaid">
+**Always render to PNG using `mmdc` and upload:**
+
+```bash
+# 1. Write diagram to .mmd file
+cat > /tmp/diagram.mmd << 'EOF'
 flowchart LR
     A[Start] --> B{Condition}
     B -->|Yes| C[Process1]
     B -->|No| D[Process2]
     C --> E[Complete]
     D --> E
-</pre>
-<!-- /wp:html -->
+EOF
+
+# 2. Render to PNG (mmdc is available at ~/.nvm/versions/node/*/bin/mmdc)
+mmdc -i /tmp/diagram.mmd -o /tmp/diagram.png -w 900 --backgroundColor white
+
+# 3. Upload to WordPress media library
+python ~/.claude/skills/wp-blog-post/scripts/upload_media.py \
+  --file /tmp/diagram.png \
+  --alt-text "Diagram description"
+
+# 4. Use returned URL in wp:image block (see Image Handling section)
+```
+
+**Embed as wp:image block:**
+
+```html
+<!-- wp:image {"id":MEDIA_ID,"sizeSlug":"full","linkDestination":"none"} -->
+<figure class="wp-block-image size-full">
+  <img src="MEDIA_URL" alt="Diagram description" class="wp-image-MEDIA_ID"/>
+  <figcaption class="wp-element-caption">Caption text</figcaption>
+</figure>
+<!-- /wp:image -->
 ```
 
 ### HTML Tables (Basic)
@@ -200,14 +222,24 @@ Supported by all WordPress installations.
 
 Styled box for highlighting key information.
 
+**CRITICAL: All content inside `wp:group` MUST use inner block comments. Raw HTML tags (`<h4>`, `<ul>`, `<p>`) without block comments cause "unexpected content" errors.**
+
 ```html
 <!-- wp:group {"backgroundColor":"cyan-bluish-gray","className":"info-box"} -->
-<div class="wp-block-group info-box has-cyan-bluish-gray-background-color has-background">
-  <h4>💡 Key Points</h4>
-  <ul>
-    <li><strong>Point 1:</strong> Description</li>
-    <li><strong>Point 2:</strong> Description</li>
-  </ul>
+<div class="wp-block-group info-box has-cyan-bluish-gray-background-color has-background" style="padding: 1.5rem; border-radius: 8px;">
+<!-- wp:heading {"level":4} -->
+<h4 class="wp-block-heading">💡 Key Points</h4>
+<!-- /wp:heading -->
+<!-- wp:list -->
+<ul class="wp-block-list">
+<!-- wp:list-item -->
+<li><strong>Point 1:</strong> Description</li>
+<!-- /wp:list-item -->
+<!-- wp:list-item -->
+<li><strong>Point 2:</strong> Description</li>
+<!-- /wp:list-item -->
+</ul>
+<!-- /wp:list -->
 </div>
 <!-- /wp:group -->
 ```
@@ -256,8 +288,12 @@ Visualize steps in tutorials and guides.
 ```html
 <!-- wp:group {"className":"step-card"} -->
 <div class="wp-block-group step-card" style="border-left: 4px solid #0073aa; padding-left: 1rem; margin: 1rem 0;">
-  <h4>📌 Step 1: Environment Setup</h4>
-  <p>Description...</p>
+<!-- wp:heading {"level":4} -->
+<h4 class="wp-block-heading">📌 Step 1: Environment Setup</h4>
+<!-- /wp:heading -->
+<!-- wp:paragraph -->
+<p>Description...</p>
+<!-- /wp:paragraph -->
 </div>
 <!-- /wp:group -->
 ```
@@ -360,6 +396,65 @@ python .claude/skills/wp-blog-post/scripts/publish_post.py \
 6. **Check environment variables**: `WP_SITE_URL`, `WP_USERNAME`, `WP_APP_PASSWORD`
 7. **Execute publishing script**: Save as draft with auto-selected categories and tags
 8. **Confirm result**: Provide returned post URL
+
+## Gutenberg Block Rules (CRITICAL)
+
+Violating these rules causes "unexpected or invalid content" errors in the block editor.
+
+### Rule 1: Inner blocks inside wp:group MUST have block comments
+
+Every HTML element inside `<!-- wp:group -->` must be wrapped in its own block comment:
+
+| Element | Required block comment |
+|---------|------------------------|
+| `<h2>`, `<h3>`, `<h4>` | `<!-- wp:heading {"level":N} -->` |
+| `<p>` | `<!-- wp:paragraph -->` |
+| `<ul>` | `<!-- wp:list -->` |
+| `<ol>` | `<!-- wp:list -->{"ordered":true}` |
+
+### Rule 2: List items require wp:list-item (WordPress 6.0+)
+
+```html
+<!-- wp:list -->
+<ul class="wp-block-list">
+<!-- wp:list-item -->
+<li>Item text</li>
+<!-- /wp:list-item -->
+</ul>
+<!-- /wp:list -->
+```
+
+### Rule 3: Heading tags require class attribute
+
+```html
+<!-- wp:heading {"level":2} -->
+<h2 class="wp-block-heading">Title</h2>
+<!-- /wp:heading -->
+```
+
+### Rule 4: Never use raw HTML inside wp:group
+
+```html
+<!-- WRONG - causes block error -->
+<!-- wp:group -->
+<div class="wp-block-group">
+  <h4>Title</h4>     ← raw HTML without block comment
+  <ul><li>item</li></ul>
+</div>
+<!-- /wp:group -->
+
+<!-- CORRECT -->
+<!-- wp:group -->
+<div class="wp-block-group">
+<!-- wp:heading {"level":4} -->
+<h4 class="wp-block-heading">Title</h4>
+<!-- /wp:heading -->
+<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item --><li>item</li><!-- /wp:list-item --></ul>
+<!-- /wp:list -->
+</div>
+<!-- /wp:group -->
+```
 
 ## Writing Style Rules
 
