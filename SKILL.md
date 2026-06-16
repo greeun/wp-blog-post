@@ -129,27 +129,96 @@ Analyzes content to automatically generate relevant tags.
 
 ## 5. Visual Elements Guidelines
 
-Include appropriate visual elements to **enhance readability and comprehension**.
+### Infographic-First Principle (MANDATORY)
+
+**The post's structure and every explanation must be graspable at a glance.** Lean on
+infographics as the PRIMARY way to communicate, not as decoration. Whenever an idea can be
+shown instead of written, show it as an image. Maximize the use of:
+
+- **Mind maps** — topic decomposition, "what this post covers" overview (Mermaid `mindmap`)
+- **Diagrams / schematics** — system boundaries, how pieces relate (`graph`, `flowchart`)
+- **Flowcharts** — processes, decision logic, request lifecycles
+- **Architecture diagrams** — components, data flow, deployment layout
+- **Charts & graphs** — before/after metrics, distributions, trends (Mermaid `xychart-beta`, `pie`, `quadrantChart`)
+- **Timelines** — version history, migration steps (Mermaid `timeline`)
+- **Sequence diagrams** — API calls, multi-actor flows
+- **Webtoon / illustrated panels** — narrate a problem→solution story as an AI-generated
+  illustration when a concept is more memorable as a scene than a chart
+- **Other creative visualizations** — the types above are examples, not an exhaustive list; any
+  creative visual that fits the content is welcome (comparison cards, a labeled "map", a quadrant,
+  a layered stack, a numbered journey strip, a custom infographic, …)
+
+**Rule of thumb: every major section should carry at least one infographic** so a reader
+skimming only the images still understands the post. Default to a visual; fall back to plain
+prose only when a visual genuinely adds nothing.
+
+### Plugin-Independent Images (REQUIRED)
+
+**Every infographic must be a self-contained image file (PNG/JPG/SVG) that renders with no
+WordPress plugin, shortcode, or client-side library.** A post must look identical on any
+WordPress install, even with zero plugins active.
+
+- **Render ahead of time, then embed as a plain image.** Produce the final raster/vector
+  file first (Mermaid via the `mmdc` CLI → PNG; charts via any tool → PNG; webtoon/custom
+  art → PNG), upload it to the Media Library, and embed only through the core `wp:image`
+  block.
+- **Banned (plugin/JS-dependent, breaks without the plugin):**
+  - Inline `<pre class="mermaid">` / `<div class="mermaid">` (needs a Mermaid plugin)
+  - Chart/diagram shortcodes like `[chart]`, `[mermaid]`, `[diagram]`, `[graph]`
+  - Plugin-specific Gutenberg blocks (e.g. `wp:plugin-name/chart`)
+  - `<script>`-driven embeds (Chart.js, D3, ApexCharts injected into post body)
+  - Hotlinked third-party iframes/widgets for diagrams
+- Mermaid is allowed **only as a local CLI render step** (`mmdc`) whose output is a static
+  PNG. The Mermaid source never ships in the post body.
+- Tables (`wp:table`) and infographic boxes (`wp:group`) are core blocks and stay allowed —
+  they need no plugin.
 
 ### Visual Element Selection Criteria
 
 | Content Type | Recommended Visual Element |
 |--------------|---------------------------|
+| Post overview / scope | **Mind map** (Mermaid `mindmap`) at the top |
 | Process/Workflow | Mermaid flowchart, step diagram |
-| Comparison/Selection | Comparison table, pros/cons table |
-| Architecture/Structure | Mermaid diagram, hierarchy chart |
-| Data/Statistics | HTML table, summary card |
+| Decision/Branching logic | Mermaid flowchart with conditionals |
+| Comparison/Selection | Comparison table, quadrant chart, pros/cons cards |
+| Architecture/Structure | Mermaid diagram, hierarchy chart, layered stack |
+| Data/Statistics/Metrics | **Chart/graph** (`xychart-beta`, `pie`), before/after bars |
+| Version/Migration history | Mermaid `timeline` |
 | Sequence/Flow | Mermaid sequence diagram |
 | Concept Relations | Mermaid graph, relationship diagram |
+| Story / pain-point narrative | **Webtoon / illustrated panel** (image-gen → upload) |
+| Anything else that fits a visual | Open-ended creative visualization (journey strip, labeled map, cards, custom infographic) — list above is not exhaustive |
 | Summary/Key Points | Infographic box, highlight card |
 
 ### Mandatory Rules
 
-1. **Include minimum 2 visual elements per post**
-2. **Complex concepts must be visualized with diagrams**
-3. **Comparisons must be organized in tables**
-4. **Processes must be expressed as flowcharts**
-5. **Use summary boxes for TL;DR sections**
+1. **Maximize infographics — aim for one visual per major section, never fewer than 2 per post**
+2. **Prefer showing over telling**: if content fits a diagram/chart/map, render it as an image
+3. **Complex concepts must be visualized with diagrams**
+4. **Comparisons must be organized in tables or quadrant/comparison cards**
+5. **Processes must be expressed as flowcharts**
+6. **Vary the visual types** — do not repeat the same chart kind; mix mind map + flow + chart + table
+7. **Plugin-independent only** — render every infographic to a static image file and embed via
+   the core `wp:image` block; never inline Mermaid, shortcodes, or JS chart libraries
+8. **Use summary boxes for TL;DR sections**
+
+### Non-Mermaid & Illustrated Visuals (webtoon, custom infographics)
+
+Mermaid covers diagrams/charts/flow/mindmap/timeline. For **webtoon panels, hand-styled
+infographics, or illustrated metaphors**, generate the image (any image-gen tool that
+outputs a static PNG/JPG/SVG — no plugin/JS dependency), then upload it and embed as a
+`wp:image` block:
+
+```bash
+# After producing /tmp/webtoon.png (or any infographic image)
+python ~/.claude/skills/wp-blog-post/scripts/upload_media.py \
+  --file /tmp/webtoon.png \
+  --alt-text "Comic panel: the cache stampede problem"
+# Then embed the returned URL via the wp:image block (see Image Handling section)
+```
+
+Always give each generated image specific, descriptive **alt text** so the infographic stays
+accessible and searchable.
 
 ### Mermaid Diagrams → PNG Image (Required Workflow)
 
@@ -170,6 +239,20 @@ EOF
 
 # 2. Render to PNG (mmdc is available at ~/.nvm/versions/node/*/bin/mmdc)
 mmdc -i /tmp/diagram.mmd -o /tmp/diagram.png -w 900 --backgroundColor white
+
+# mmdc renders many infographic types, not only flowcharts. Same command, different header:
+#   mindmap        → post scope / topic decomposition
+#   xychart-beta   → bar/line charts for metrics (before/after, trends)
+#   pie            → proportion / share charts
+#   timeline       → version history, migration steps
+#   quadrantChart  → 2-axis comparison (e.g. effort vs impact)
+#   sequenceDiagram→ API calls, multi-actor flows
+# Example mindmap header:
+#   mindmap
+#     root((Post topic))
+#       Background
+#       Implementation
+#       Results
 
 # 3. Upload to WordPress media library
 python ~/.claude/skills/wp-blog-post/scripts/upload_media.py \
@@ -389,7 +472,7 @@ python .claude/skills/wp-blog-post/scripts/publish_post.py \
 ## 8. Execution Procedure
 
 1. **Create content file**: Convert markdown to HTML and save to `/tmp/post_content.html`
-2. **Generate visual elements**: Include at least 2 appropriate diagrams, tables, infographics based on content analysis
+2. **Generate visual elements (infographic-first)**: Visualize each major section — aim for one infographic per section (minimum 2 per post). Mix types: mind map for scope, flowchart for process, chart/graph for metrics, sequence for flows, webtoon/illustration for narrative. See `Visual Elements Guidelines → Infographic-First Principle`.
 3. **Query existing categories**: Fetch category list from WordPress
 4. **Auto-select categories**: Select matching existing categories or decide to create new ones
 5. **Auto-generate tags**: Extract 5-10 relevant tags from content analysis
