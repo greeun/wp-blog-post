@@ -115,12 +115,34 @@ def convert_lists(text: str) -> str:
 
 def convert_paragraphs(text: str) -> str:
     """단락 변환"""
+    # 이미 변환된 wp:code 블록은 본문에 빈 줄이 있을 수 있으므로
+    # 플레이스홀더로 보호한 뒤 '\n\n' 기준 단락 분리를 하고 마지막에 복원한다.
+    # (보호하지 않으면 코드 블록 내부의 빈 줄에서 블록이 쪼개져 뒷조각이
+    #  <p>로 감싸지고 Gutenberg 오류를 유발한다.)
+    placeholders = {}
+
+    def protect(match):
+        key = f"\x00CODEBLOCK{len(placeholders)}\x00"
+        placeholders[key] = match.group(0)
+        return key
+
+    code_pattern = (
+        r'<!-- wp:code(?: \{[^}]*\})? -->\n'
+        r'<pre class="wp-block-code"><code>.*?</code></pre>\n'
+        r'<!-- /wp:code -->'
+    )
+    text = re.sub(code_pattern, protect, text, flags=re.DOTALL)
+
     lines = text.split('\n\n')
     result = []
 
     for block in lines:
         block = block.strip()
         if not block:
+            continue
+        # 보호된 코드 블록 플레이스홀더는 그대로 복원
+        if block in placeholders:
+            result.append(placeholders[block])
             continue
         # 이미 HTML 태그로 시작하면 건너뜀
         if re.match(r'^<[a-z]', block) or re.match(r'^<!--', block):

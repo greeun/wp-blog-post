@@ -4,6 +4,7 @@ description: |
   Convert work session content into WordPress blog posts and publish.
   Use when: "write blog", "publish post", "post to wordpress", "tech blog", "write tutorial",
   "summarize session as blog", "turn work into blog post"
+version: 1.0.0
 ---
 
 # WordPress Blog Post Writer
@@ -202,186 +203,13 @@ WordPress install, even with zero plugins active.
    the core `wp:image` block; never inline Mermaid, shortcodes, or JS chart libraries
 8. **Use summary boxes for TL;DR sections**
 
-### Non-Mermaid & Illustrated Visuals (webtoon, custom infographics)
+### 렌더 & 임베드 패턴 (구체 블록)
 
-Mermaid covers diagrams/charts/flow/mindmap/timeline. For **webtoon panels, hand-styled
-infographics, or illustrated metaphors**, generate the image (any image-gen tool that
-outputs a static PNG/JPG/SVG — no plugin/JS dependency), then upload it and embed as a
-`wp:image` block:
-
-```bash
-# After producing /tmp/webtoon.png (or any infographic image)
-python ~/.claude/skills/wp-blog-post/scripts/upload_media.py \
-  --file /tmp/webtoon.png \
-  --alt-text "Comic panel: the cache stampede problem"
-# Then embed the returned URL via the wp:image block (see Image Handling section)
-```
-
-Always give each generated image specific, descriptive **alt text** so the infographic stays
-accessible and searchable.
-
-### Mermaid Diagrams → PNG Image (Required Workflow)
-
-**Do NOT use `<!-- wp:html --><pre class="mermaid">` inline.** WordPress does not render Mermaid without a plugin.
-
-**Always render to PNG using `mmdc` and upload:**
-
-```bash
-# 1. Write diagram to .mmd file
-cat > /tmp/diagram.mmd << 'EOF'
-flowchart LR
-    A[Start] --> B{Condition}
-    B -->|Yes| C[Process1]
-    B -->|No| D[Process2]
-    C --> E[Complete]
-    D --> E
-EOF
-
-# 2. Render to PNG (mmdc is available at ~/.nvm/versions/node/*/bin/mmdc)
-mmdc -i /tmp/diagram.mmd -o /tmp/diagram.png -w 900 --backgroundColor white
-
-# mmdc renders many infographic types, not only flowcharts. Same command, different header:
-#   mindmap        → post scope / topic decomposition
-#   xychart-beta   → bar/line charts for metrics (before/after, trends)
-#   pie            → proportion / share charts
-#   timeline       → version history, migration steps
-#   quadrantChart  → 2-axis comparison (e.g. effort vs impact)
-#   sequenceDiagram→ API calls, multi-actor flows
-# Example mindmap header:
-#   mindmap
-#     root((Post topic))
-#       Background
-#       Implementation
-#       Results
-
-# 3. Upload to WordPress media library
-python ~/.claude/skills/wp-blog-post/scripts/upload_media.py \
-  --file /tmp/diagram.png \
-  --alt-text "Diagram description"
-
-# 4. Use returned URL in wp:image block (see Image Handling section)
-```
-
-**Embed as wp:image block:**
-
-```html
-<!-- wp:image {"id":MEDIA_ID,"sizeSlug":"full","linkDestination":"none"} -->
-<figure class="wp-block-image size-full">
-  <img src="MEDIA_URL" alt="Diagram description" class="wp-image-MEDIA_ID"/>
-  <figcaption class="wp-element-caption">Caption text</figcaption>
-</figure>
-<!-- /wp:image -->
-```
-
-### HTML Tables (Basic)
-
-Supported by all WordPress installations.
-
-```html
-<!-- wp:table -->
-<figure class="wp-block-table">
-<table>
-  <thead>
-    <tr>
-      <th>Item</th>
-      <th>Description</th>
-      <th>Notes</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Item1</td>
-      <td>Description1</td>
-      <td>Notes1</td>
-    </tr>
-  </tbody>
-</table>
-<figcaption>Table title</figcaption>
-</figure>
-<!-- /wp:table -->
-```
-
-### Infographic Box
-
-Styled box for highlighting key information.
-
-**CRITICAL: All content inside `wp:group` MUST use inner block comments. Raw HTML tags (`<h4>`, `<ul>`, `<p>`) without block comments cause "unexpected content" errors.**
-
-```html
-<!-- wp:group {"backgroundColor":"cyan-bluish-gray","className":"info-box"} -->
-<div class="wp-block-group info-box has-cyan-bluish-gray-background-color has-background" style="padding: 1.5rem; border-radius: 8px;">
-<!-- wp:heading {"level":4} -->
-<h4 class="wp-block-heading">💡 Key Points</h4>
-<!-- /wp:heading -->
-<!-- wp:list -->
-<ul class="wp-block-list">
-<!-- wp:list-item -->
-<li><strong>Point 1:</strong> Description</li>
-<!-- /wp:list-item -->
-<!-- wp:list-item -->
-<li><strong>Point 2:</strong> Description</li>
-<!-- /wp:list-item -->
-</ul>
-<!-- /wp:list -->
-</div>
-<!-- /wp:group -->
-```
-
-### Comparison Table Pattern
-
-For A vs B comparisons.
-
-```html
-<!-- wp:table {"className":"comparison-table"} -->
-<figure class="wp-block-table comparison-table">
-<table>
-  <thead>
-    <tr>
-      <th>Comparison</th>
-      <th>Option A</th>
-      <th>Option B</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Pros</td>
-      <td>✅ Pro1<br>✅ Pro2</td>
-      <td>✅ Pro1<br>✅ Pro2</td>
-    </tr>
-    <tr>
-      <td>Cons</td>
-      <td>❌ Con1</td>
-      <td>❌ Con1</td>
-    </tr>
-    <tr>
-      <td>Best for</td>
-      <td>Use case</td>
-      <td>Use case</td>
-    </tr>
-  </tbody>
-</table>
-</figure>
-<!-- /wp:table -->
-```
-
-### Step-by-Step Process Card
-
-Visualize steps in tutorials and guides.
-
-```html
-<!-- wp:group {"className":"step-card"} -->
-<div class="wp-block-group step-card" style="border-left: 4px solid #0073aa; padding-left: 1rem; margin: 1rem 0;">
-<!-- wp:heading {"level":4} -->
-<h4 class="wp-block-heading">📌 Step 1: Environment Setup</h4>
-<!-- /wp:heading -->
-<!-- wp:paragraph -->
-<p>Description...</p>
-<!-- /wp:paragraph -->
-</div>
-<!-- /wp:group -->
-```
+구체 렌더/임베드 패턴 — webtoon/커스텀 인포그래픽 생성, Mermaid → PNG 워크플로우(`mmdc`), HTML 표, 인포그래픽 박스, 비교 표, Step-by-Step 프로세스 카드 — 은 [references/visual-blocks.md](references/visual-blocks.md)에 있다. 인포그래픽을 실제 이미지로 렌더링하거나 Gutenberg 블록으로 임베드할 때(실행 절차 2단계) 이 파일을 Read한다. **Mermaid는 로컬 `mmdc` CLI 렌더 후 정적 PNG로만 임베드**하며 본문에 Mermaid 소스/샷코드/JS 차트를 넣지 않는다.
 
 ## 6. Post Templates
+
+바로 붙여 쓸 수 있는 HTML 포맷 전체 템플릿(TL;DR·구현 기록 등)은 [references/post-templates.md](references/post-templates.md)(영문), [references/post-templates.ko.md](references/post-templates.ko.md)(국문)에 있다. 아래는 마크다운 골격 예시다.
 
 ### Tech Blog Format
 
@@ -462,7 +290,7 @@ python .claude/skills/wp-blog-post/scripts/publish_post.py \
 | `--status` | draft / publish | draft |
 | `--categories` | Categories (comma-separated, auto-selected) | - |
 | `--tags` | Tags (comma-separated, auto-generated) | - |
-| `--featured-image` | Featured image path | - |
+| `--featured-media` | Featured image media ID (integer, from an already-uploaded WordPress media item) | - |
 
 **Notes**:
 - `--categories` auto-selects from existing categories or creates new ones as needed.
@@ -483,62 +311,7 @@ python .claude/skills/wp-blog-post/scripts/publish_post.py \
 
 ## Gutenberg Block Rules (CRITICAL)
 
-Violating these rules causes "unexpected or invalid content" errors in the block editor.
-
-### Rule 1: Inner blocks inside wp:group MUST have block comments
-
-Every HTML element inside `<!-- wp:group -->` must be wrapped in its own block comment:
-
-| Element | Required block comment |
-|---------|------------------------|
-| `<h2>`, `<h3>`, `<h4>` | `<!-- wp:heading {"level":N} -->` |
-| `<p>` | `<!-- wp:paragraph -->` |
-| `<ul>` | `<!-- wp:list -->` |
-| `<ol>` | `<!-- wp:list -->{"ordered":true}` |
-
-### Rule 2: List items require wp:list-item (WordPress 6.0+)
-
-```html
-<!-- wp:list -->
-<ul class="wp-block-list">
-<!-- wp:list-item -->
-<li>Item text</li>
-<!-- /wp:list-item -->
-</ul>
-<!-- /wp:list -->
-```
-
-### Rule 3: Heading tags require class attribute
-
-```html
-<!-- wp:heading {"level":2} -->
-<h2 class="wp-block-heading">Title</h2>
-<!-- /wp:heading -->
-```
-
-### Rule 4: Never use raw HTML inside wp:group
-
-```html
-<!-- WRONG - causes block error -->
-<!-- wp:group -->
-<div class="wp-block-group">
-  <h4>Title</h4>     ← raw HTML without block comment
-  <ul><li>item</li></ul>
-</div>
-<!-- /wp:group -->
-
-<!-- CORRECT -->
-<!-- wp:group -->
-<div class="wp-block-group">
-<!-- wp:heading {"level":4} -->
-<h4 class="wp-block-heading">Title</h4>
-<!-- /wp:heading -->
-<!-- wp:list -->
-<ul class="wp-block-list"><!-- wp:list-item --><li>item</li><!-- /wp:list-item --></ul>
-<!-- /wp:list -->
-</div>
-<!-- /wp:group -->
-```
+Violating these rules causes "unexpected or invalid content" errors in the block editor. 4개 규칙(wp:group 내부 블록 주석 필수, wp:list-item 필수, heading class 속성 필수, wp:group 내 raw HTML 금지)의 상세 예시는 [references/gutenberg-rules.md](references/gutenberg-rules.md)에 있다. 콘텐츠 HTML을 조립할 때 이 파일을 Read한다.
 
 ## Writing Style Rules
 
@@ -551,76 +324,7 @@ Every HTML element inside `<!-- wp:group -->` must be wrapped in its own block c
 
 ### AI Slop Prevention (CRITICAL)
 
-단일 패스 생성은 일반 튜토리얼처럼 균질화되기 쉽다. 아래 규칙을 위반한 초안은 발행하지 않는다.
-
-#### 금지 오프닝 (Banned Openings)
-
-| 언어 | 금지 패턴 |
-|---|---|
-| KO | `바야흐로 ~` |
-| KO | `오늘날 빠르게 변화하는 ~` / `급변하는 ~ 시대` |
-| KO | `이번 포스트에서는 ~에 대해 알아보겠습니다` |
-| KO | `~는 현대 개발의 필수 ~` |
-| KO | `AI가 세상을 바꾸는 ~` |
-| EN | `In today's fast-paced world, ~` |
-| EN | `In this post, we will explore ~` |
-| EN | `~ has become essential in modern development` |
-| EN | `Let's dive into ~` |
-
-대신 **이 세션에서 실제로 마주친 문제·결과**로 연다.
-- Good: "FastAPI 0.110에서 `lifespan` 이벤트로 바꾸다가 `startup` 콜백이 2회 실행되는 문제를 만났다."
-- Bad: "오늘날 빠르게 변화하는 개발 환경에서 FastAPI는 필수 프레임워크가 되었습니다."
-
-#### 금지 filler (Banned Filler Phrases)
-
-등장하면 삭제하거나 구체 표현으로 대체한다.
-
-- 수식어: `혁신적인`, `놀라운`, `강력한`, `효율적인`, `최신의`
-- 양화: `다양한 ~`, `수많은 ~`, `여러 가지 ~` → 실제 개수·이름으로
-- 단정: `매우 중요합니다`, `꼭 필요합니다`, `핵심입니다` → 중요한 이유를 쓰거나 삭제
-- 완충: `~라고 할 수 있습니다`, `~라고 볼 수 있습니다` → 근거 제시 또는 단정
-- 전환: `자, 이제 ~`, `다음으로 ~`, `마지막으로 ~` → 제목으로 대체
-
-#### 가짜 코드 금지 (No Placeholder Code)
-
-- `doSomething()`, `foo`, `bar`, `...`, `TODO`, `// 생략`, `pass # 구현 예정` 금지
-- 코드 블록의 함수·변수는 이 세션에서 실제로 쓴 것과 이름이 일치해야 함
-- 불가피한 축약은 `# ... (위와 동일한 import)` 처럼 **축약 의도를 명시**
-- 모든 코드 블록에 language tag (` ```python `, ` ```bash ` 등) 필수
-
-#### 구체성 강제 (Specificity Over Generality)
-
-- 구체 수치·버전·에러 메시지·파일 경로를 포함한다.
-  - ❌ "성능이 개선되었다"
-  - ✅ "p95 응답 시간이 820ms → 190ms로 줄었다"
-- 이 세션에서만 얻은 관찰(**insight angle**)을 최소 1건 포함한다.
-  - 예: "문서화된 기본 TTL 60초와 달리 내부적으로 600초로 강제된다."
-- Stack Overflow 복사 수준의 일반 패턴만 나열하면 실패.
-
-#### 발행 전 Self-Check (MANDATORY)
-
-`publish_post.py` 호출 **전에** 초안을 훑어 아래 전부를 확인한다. 하나라도 실패하면 중단하고 수정.
-
-- [ ] 오프닝 1문장이 `금지 오프닝` 목록에 없음
-- [ ] `혁신적인`·`놀라운`·`다양한`·`매우 중요` 등 filler **0건** (grep으로 전수조사)
-- [ ] `doSomething`·`foo`·`bar`·`TODO`·`...` 플레이스홀더 코드 **0건**
-- [ ] 모든 코드 블록에 language tag 존재
-- [ ] 이 세션 고유의 구체 디테일(수치/버전/에러/경로) **최소 3건**
-- [ ] 한국어 종결어미 마침표 누락 **0건** (아래 grep)
-- [ ] 2개 이상 섹션에서 같은 주장을 다른 표현으로 반복하지 않음
-
-빠른 검사용 grep:
-
-```bash
-# KO 종결어미 마침표 누락 (다/했다/된다/있다/없다/한다/이다 직후 마침표 없음)
-grep -nE "(다|했다|된다|있다|없다|한다|이다)([ 	]*$|[ 	]+[^.．。])" /tmp/post_content.html
-
-# Filler 전수조사
-grep -niE "혁신적인|놀라운|강력한|다양한|수많은|매우 중요|꼭 필요|~라고 할 수|~라고 볼 수" /tmp/post_content.html
-
-# Placeholder 코드
-grep -nE "doSomething|\\bfoo\\b|\\bbar\\b|TODO|\\.\\.\\.|// 생략" /tmp/post_content.html
-```
+단일 패스 생성은 일반 튜토리얼처럼 균질화되기 쉽다. 금지 오프닝, 금지 filler, 가짜 코드 금지, 구체성 강제, 그리고 **발행 전 Self-Check (MANDATORY)**의 전체 목록과 검사용 grep은 [references/writing-style.md](references/writing-style.md)에 있다. 초안 작성 시와 발행 직전(실행 절차 7단계)에 이 파일을 Read하고, 한 항목이라도 실패하면 발행을 중단한다.
 
 ## Code Block Handling
 
